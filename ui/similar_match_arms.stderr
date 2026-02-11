@@ -1,0 +1,71 @@
+warning: 4 match arms have the same body structure — extract into a helper
+  --> $DIR/similar_match_arms.rs:12:9
+   |
+LL | /         Op::A => match left.partial_cmp(right) {
+LL | |             Some(std::cmp::Ordering::Less) => Some(true),
+LL | |             Some(_) => Some(false),
+LL | |             None => None,
+LL | |         },
+   | |_________^
+   |
+note: similar arm here
+  --> $DIR/similar_match_arms.rs:17:9
+   |
+LL | /         Op::B => match left.partial_cmp(right) {
+LL | |             Some(std::cmp::Ordering::Greater) => Some(true),
+LL | |             Some(_) => Some(false),
+LL | |             None => None,
+LL | |         },
+   | |_________^
+note: similar arm here
+  --> $DIR/similar_match_arms.rs:22:9
+   |
+LL | /         Op::C => match left.partial_cmp(right) {
+LL | |             Some(std::cmp::Ordering::Less) => Some(true),
+LL | |             Some(_) => Some(false),
+LL | |             None => None,
+LL | |         },
+   | |_________^
+note: similar arm here
+  --> $DIR/similar_match_arms.rs:27:9
+   |
+LL | /         Op::D => match left.partial_cmp(right) {
+LL | |             Some(std::cmp::Ordering::Greater) => Some(true),
+LL | |             Some(_) => Some(false),
+LL | |             None => None,
+LL | |         },
+   | |_________^
+   = help: suggested helper name: `compare_helper`
+           transform: T2 — extract predicate / collapse arms
+           the arms differ in multiple leaves — pass a closure for the varying behavior
+   = note: `#[warn(similar_match_arms)]` on by default
+
+warning: 2 match arms have 67% structural similarity — consider extracting shared logic into a helper
+  --> $DIR/similar_match_arms.rs:47:13
+   |
+LL | /             Self::List(l) => {
+LL | |                 write!(f, "[")?;
+LL | |                 for (i, v) in l.iter().enumerate() {
+LL | |                     if i > 0 {
+...  |
+LL | |                 write!(f, "]")
+LL | |             }
+   | |_____________^
+   |
+note: similar arm here
+  --> $DIR/similar_match_arms.rs:57:13
+   |
+LL | /             Self::Map(m) => {
+LL | |                 write!(f, "{{")?;
+LL | |                 for (i, (k, v)) in m.iter().enumerate() {
+LL | |                     if i > 0 {
+...  |
+LL | |                 write!(f, "}}")
+LL | |             }
+   | |_____________^
+   = help: suggested helper name: `fmt_helper`
+           transform: T3 — extract shared preamble
+           extract the common logic into a helper taking a closure or parameter for the differing parts
+
+warning: 2 warnings emitted
+

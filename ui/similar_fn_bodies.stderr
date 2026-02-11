@@ -1,0 +1,29 @@
+warning: `call_left` and `call_right` have 80% structural similarity
+  --> $DIR/similar_fn_bodies.rs:5:1
+   |
+LL | / fn call_left(s: &str, n: usize) -> String {
+LL | |     if s.is_empty() {
+LL | |         return String::new();
+...  |
+LL | |     chars[..end].iter().collect()
+LL | | }
+   | |_^
+   |
+note: `call_right` defined here
+  --> $DIR/similar_fn_bodies.rs:15:1
+   |
+LL | / fn call_right(s: &str, n: usize) -> String {
+LL | |     if s.is_empty() {
+LL | |         return String::new();
+...  |
+LL | |     chars[start..].iter().collect()
+LL | | }
+   | |_^
+   = help: suggested helper name: `call_op`
+           transform: T3: extract shared preamble
+           extract the common prefix into a helper taking a closure for the differing tail
+           shared preamble: 3 of 5 statements
+   = note: `#[warn(similar_fn_bodies)]` on by default
+
+warning: 1 warning emitted
+

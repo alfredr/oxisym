@@ -1,0 +1,28 @@
+warning: all if/else branches call the same function — hoist the call and factor the condition into the arguments
+  --> $DIR/same_call_both_branches.rs:21:5
+   |
+LL |     if dark { paint(0) } else { paint(255) }
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `paint(if dark { 0 } else { 255 })`
+   |
+   = note: `#[warn(same_call_both_branches)]` on by default
+
+warning: all match arms call the same function — hoist the call and factor the match into the arguments
+  --> $DIR/same_call_both_branches.rs:25:5
+   |
+LL | /     match x {
+LL | |         true => paint(1),
+LL | |         false => paint(2),
+LL | |     }
+   | |_____^ help: try: `paint(match x { true => 1, false => 2 })`
+
+warning: all match arms call the same function — hoist the call and factor the match into the arguments
+  --> $DIR/same_call_both_branches.rs:33:5
+   |
+LL | /     match x {
+LL | |         true => c.draw(10),
+LL | |         false => c.draw(20),
+LL | |     }
+   | |_____^ help: try: `c.draw(match x { true => 10, false => 20 })`
+
+warning: 3 warnings emitted
+
