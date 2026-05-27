@@ -14,7 +14,7 @@ jobs:
     name: test, lint, fmt
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # rust-toolchain pins the nightly channel + rustc-dev/llvm-tools.
       # rustfmt and clippy aren't in that file so install them explicitly.
