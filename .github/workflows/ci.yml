@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  ci:
+    name: test, lint, fmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # rust-toolchain pins the nightly channel + rustc-dev/llvm-tools.
+      # rustfmt and clippy aren't in that file so install them explicitly.
+      - name: Install rustfmt and clippy
+        run: rustup component add rustfmt clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-dylint and dylint-link
+        run: cargo install cargo-dylint dylint-link --locked
+
+      - name: cargo fmt --check
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: cargo test
+        run: cargo test --all
+
+      - name: cargo dylint --all (self-lint)
+        run: |
+          out=$(cargo dylint --all 2>&1)
+          echo "$out"
+          if echo "$out" | grep -q "^warning:"; then
+            echo "::error::oxisym reported warnings on its own source"
+            exit 1
+          fi

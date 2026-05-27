@@ -1,7 +1,7 @@
+use clippy_utils::SpanlessEq;
 use clippy_utils::diagnostics::span_lint_and_then;
 use clippy_utils::higher;
 use clippy_utils::source::snippet;
-use clippy_utils::SpanlessEq;
 use rustc_hir::{Arm, Expr, ExprKind, MatchSource, PathSegment, StmtKind};
 use rustc_lint::{LateContext, LateLintPass};
 use rustc_session::{declare_lint, impl_lint_pass};
@@ -48,13 +48,16 @@ fn peel_blocks<'tcx>(expr: &'tcx Expr<'tcx>) -> &'tcx Expr<'tcx> {
     match &expr.kind {
         ExprKind::Block(block, _) => {
             if let Some(tail) = block.expr
-                && block.stmts.is_empty() {
-                    return peel_blocks(tail);
-                }
-            if block.stmts.len() == 1 && block.expr.is_none()
-                && let StmtKind::Semi(e) | StmtKind::Expr(e) = block.stmts[0].kind {
-                    return peel_blocks(e);
-                }
+                && block.stmts.is_empty()
+            {
+                return peel_blocks(tail);
+            }
+            if block.stmts.len() == 1
+                && block.expr.is_none()
+                && let StmtKind::Semi(e) | StmtKind::Expr(e) = block.stmts[0].kind
+            {
+                return peel_blocks(e);
+            }
             expr
         }
         _ => expr,
@@ -85,11 +88,7 @@ fn extract_call_info<'tcx>(expr: &'tcx Expr<'tcx>) -> Option<CallInfo<'tcx>> {
     }
 }
 
-fn callees_eq<'tcx>(
-    cx: &LateContext<'tcx>,
-    a: &Callee<'tcx>,
-    b: &Callee<'tcx>,
-) -> bool {
+fn callees_eq<'tcx>(cx: &LateContext<'tcx>, a: &Callee<'tcx>, b: &Callee<'tcx>) -> bool {
     let mut eq = SpanlessEq::new(cx).deny_side_effects();
     match (a, b) {
         (Callee::Free(fa), Callee::Free(fb)) => eq.eq_expr(fa, fb),
@@ -100,10 +99,7 @@ fn callees_eq<'tcx>(
     }
 }
 
-fn all_same_callee<'tcx>(
-    cx: &LateContext<'tcx>,
-    bodies: &[&'tcx Expr<'tcx>],
-) -> bool {
+fn all_same_callee<'tcx>(cx: &LateContext<'tcx>, bodies: &[&'tcx Expr<'tcx>]) -> bool {
     let callees: Vec<_> = bodies.iter().filter_map(|b| extract_callee(b)).collect();
     if callees.len() != bodies.len() || callees.len() < 2 {
         return false;
@@ -175,7 +171,9 @@ fn build_if_suggestion<'tcx>(
         if differ.contains(&i) {
             let then_arg = snippet(cx, calls[0].args[i].span, "..");
             let else_arg = snippet(cx, calls[1].args[i].span, "..");
-            args_parts.push(format!("if {cond_str} {{ {then_arg} }} else {{ {else_arg} }}"));
+            args_parts.push(format!(
+                "if {cond_str} {{ {then_arg} }} else {{ {else_arg} }}"
+            ));
         } else {
             args_parts.push(snippet(cx, calls[0].args[i].span, "..").into_owned());
         }
@@ -250,7 +248,10 @@ fn check_if_else<'tcx>(
     expr: &'tcx Expr<'tcx>,
     branches: &[&'tcx Expr<'tcx>],
 ) {
-    let calls: Vec<_> = branches.iter().filter_map(|b| extract_call_info(b)).collect();
+    let calls: Vec<_> = branches
+        .iter()
+        .filter_map(|b| extract_call_info(b))
+        .collect();
     if calls.len() != branches.len() {
         return;
     }
@@ -266,16 +267,18 @@ fn check_if_else<'tcx>(
         |diag| {
             // Try to build a concrete suggestion for simple cases.
             if let Some(ref diff) = differ
-                && branches.len() == 2 && !diff.is_empty()
-                    && let Some(suggestion) = build_if_suggestion(cx, expr, &calls, diff) {
-                        diag.span_suggestion(
-                            expr.span,
-                            "try",
-                            suggestion,
-                            rustc_errors::Applicability::MaybeIncorrect,
-                        );
-                        return;
-                    }
+                && branches.len() == 2
+                && !diff.is_empty()
+                && let Some(suggestion) = build_if_suggestion(cx, expr, &calls, diff)
+            {
+                diag.span_suggestion(
+                    expr.span,
+                    "try",
+                    suggestion,
+                    rustc_errors::Applicability::MaybeIncorrect,
+                );
+                return;
+            }
             // Fallback to generic help.
             diag.help(
                 "e.g. `f(if cond { a } else { b })` instead of \
@@ -311,17 +314,17 @@ fn check_match<'tcx>(
          hoist the call and factor the match into the arguments",
         |diag| {
             if let Some(ref diff) = differ
-                && !diff.is_empty() {
-                    let suggestion =
-                        build_match_suggestion(cx, scrutinee, arms, &calls, diff);
-                    diag.span_suggestion(
-                        match_expr.span,
-                        "try",
-                        suggestion,
-                        rustc_errors::Applicability::MaybeIncorrect,
-                    );
-                    return;
-                }
+                && !diff.is_empty()
+            {
+                let suggestion = build_match_suggestion(cx, scrutinee, arms, &calls, diff);
+                diag.span_suggestion(
+                    match_expr.span,
+                    "try",
+                    suggestion,
+                    rustc_errors::Applicability::MaybeIncorrect,
+                );
+                return;
+            }
             diag.help(
                 "e.g. `f(match x { A => a, B => b })` instead of \
                  `match x { A => f(a), B => f(b) }`",

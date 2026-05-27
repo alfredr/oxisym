@@ -15,18 +15,18 @@ mod similar_match_arms;
 
 #[doc(hidden)]
 #[unsafe(no_mangle)]
-pub extern "C" fn register_lints(_sess: &rustc_session::Session, lint_store: &mut rustc_lint::LintStore) {
+pub extern "C" fn register_lints(
+    _sess: &rustc_session::Session,
+    lint_store: &mut rustc_lint::LintStore,
+) {
     lint_store.register_lints(&[
         same_call_both_branches::SAME_CALL_BOTH_BRANCHES,
         similar_fn_bodies::SIMILAR_FN_BODIES,
         similar_match_arms::SIMILAR_MATCH_ARMS,
     ]);
-    lint_store
-        .register_late_pass(|_| Box::new(same_call_both_branches::SameCallBothBranches));
-    lint_store
-        .register_late_pass(|_| Box::new(similar_fn_bodies::SimilarFnBodies::default()));
-    lint_store
-        .register_late_pass(|_| Box::new(similar_match_arms::SimilarMatchArms));
+    lint_store.register_late_pass(|_| Box::new(same_call_both_branches::SameCallBothBranches));
+    lint_store.register_late_pass(|_| Box::new(similar_fn_bodies::SimilarFnBodies::default()));
+    lint_store.register_late_pass(|_| Box::new(similar_match_arms::SimilarMatchArms));
 }
 
 dylint_linting::dylint_library!();
