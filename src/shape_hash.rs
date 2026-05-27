@@ -41,6 +41,19 @@ fn hash_stmt(h: &mut impl Hasher, s: &Stmt<'_>) {
     }
 }
 
+fn hash_exprs(h: &mut impl Hasher, exprs: &[Expr<'_>]) {
+    exprs.len().hash(h);
+    for e in exprs {
+        hash_expr(h, e);
+    }
+}
+
+fn hash_op_binop<T>(h: &mut impl Hasher, op: &T, l: &Expr<'_>, r: &Expr<'_>) {
+    std::mem::discriminant(op).hash(h);
+    hash_expr(h, l);
+    hash_expr(h, r);
+}
+
 fn hash_block(h: &mut impl Hasher, b: &Block<'_>) {
     b.stmts.len().hash(h);
     for s in b.stmts {
@@ -64,32 +77,18 @@ fn hash_expr(h: &mut impl Hasher, e: &Expr<'_>) {
         // Calls: hash the callee structure + arg count + each arg shape.
         ExprKind::Call(func, args) => {
             hash_expr(h, func);
-            args.len().hash(h);
-            for a in *args {
-                hash_expr(h, a);
-            }
+            hash_exprs(h, args);
         }
         ExprKind::MethodCall(path, receiver, args, _) => {
-            // DO hash the method name — we want `set_property` == `set_property`
+            // DO hash the method name -- we want `set_property` == `set_property`
             // but `set_node_property` != `remove_property`.
             path.ident.name.hash(h);
             hash_expr(h, receiver);
-            args.len().hash(h);
-            for a in *args {
-                hash_expr(h, a);
-            }
+            hash_exprs(h, args);
         }
 
-        ExprKind::Binary(op, l, r) => {
-            std::mem::discriminant(&op.node).hash(h);
-            hash_expr(h, l);
-            hash_expr(h, r);
-        }
-        ExprKind::AssignOp(op, l, r) => {
-            std::mem::discriminant(&op.node).hash(h);
-            hash_expr(h, l);
-            hash_expr(h, r);
-        }
+        ExprKind::Binary(op, l, r) => hash_op_binop(h, &op.node, l, r),
+        ExprKind::AssignOp(op, l, r) => hash_op_binop(h, &op.node, l, r),
         ExprKind::Unary(op, e) => {
             std::mem::discriminant(op).hash(h);
             hash_expr(h, e);
@@ -150,12 +149,7 @@ fn hash_expr(h: &mut impl Hasher, e: &Expr<'_>) {
         }
 
         // Tuple / Array.
-        ExprKind::Tup(exprs) | ExprKind::Array(exprs) => {
-            exprs.len().hash(h);
-            for e in *exprs {
-                hash_expr(h, e);
-            }
-        }
+        ExprKind::Tup(exprs) | ExprKind::Array(exprs) => hash_exprs(h, exprs),
 
         // Let-in-if (let ... = expr).
         ExprKind::Let(let_expr) => {
