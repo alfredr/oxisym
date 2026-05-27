@@ -54,10 +54,9 @@ pub fn common_suffix<'a>(a: &'a str, b: &str) -> &'a str {
         }
     }
     // If we exhausted one string entirely and the match point is at a boundary
-    if ai == 0 && bi == 0 && a_bytes[0] == b_bytes[0]
-        && a_bytes[0] == b'_' {
-            last_boundary = 0;
-        }
+    if ai == 0 && bi == 0 && a_bytes[0] == b_bytes[0] && a_bytes[0] == b'_' {
+        last_boundary = 0;
+    }
     &a[last_boundary..]
 }
 
@@ -114,40 +113,47 @@ mod tests {
     #[test]
     fn test_common_prefix() {
         assert_eq!(common_prefix("call_left", "call_right"), "call_");
-        assert_eq!(common_prefix("eval_all_predicate", "eval_any_predicate"), "eval_");
+        assert_eq!(
+            common_prefix("eval_all_predicate", "eval_any_predicate"),
+            "eval_"
+        );
         assert_eq!(common_prefix("foo", "bar"), "");
         assert_eq!(common_prefix("eval_and", "eval_or"), "eval_");
-        assert_eq!(common_prefix("set_node_properties", "set_rel_properties"), "set_");
+        assert_eq!(
+            common_prefix("set_node_properties", "set_rel_properties"),
+            "set_"
+        );
     }
 
     #[test]
     fn test_common_suffix() {
-        assert_eq!(common_suffix("eval_all_predicate", "eval_any_predicate"), "_predicate");
+        assert_eq!(
+            common_suffix("eval_all_predicate", "eval_any_predicate"),
+            "_predicate"
+        );
         assert_eq!(common_suffix("call_left", "call_right"), "");
-        assert_eq!(common_suffix("set_node_properties", "set_rel_properties"), "_properties");
+        assert_eq!(
+            common_suffix("set_node_properties", "set_rel_properties"),
+            "_properties"
+        );
     }
 
     #[test]
     fn test_suggest_helper_name() {
+        assert_eq!(suggest_helper_name(&["call_left", "call_right"]), "call_op");
         assert_eq!(
-            suggest_helper_name(&["call_left", "call_right"]),
-            "call_op"
-        );
-        assert_eq!(
-            suggest_helper_name(&["eval_all_predicate", "eval_any_predicate", "eval_none_predicate"]),
+            suggest_helper_name(&[
+                "eval_all_predicate",
+                "eval_any_predicate",
+                "eval_none_predicate"
+            ]),
             "eval_predicate"
         );
-        assert_eq!(
-            suggest_helper_name(&["eval_and", "eval_or"]),
-            "eval_op"
-        );
+        assert_eq!(suggest_helper_name(&["eval_and", "eval_or"]), "eval_op");
         assert_eq!(
             suggest_helper_name(&["set_node_properties", "set_rel_properties"]),
             "set_properties"
         );
-        assert_eq!(
-            suggest_helper_name(&["foo", "bar"]),
-            "shared_helper"
-        );
+        assert_eq!(suggest_helper_name(&["foo", "bar"]), "shared_helper");
     }
 }

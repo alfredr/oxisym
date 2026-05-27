@@ -140,9 +140,7 @@ fn diff_expr(a: &Expr<'_>, b: &Expr<'_>) -> Option<usize> {
         {
             diff_match(sa, sb, arms_a, arms_b)
         }
-        (ExprKind::Block(ba, _), ExprKind::Block(bb, _))
-            if ba.stmts.len() == bb.stmts.len() =>
-        {
+        (ExprKind::Block(ba, _), ExprKind::Block(bb, _)) if ba.stmts.len() == bb.stmts.len() => {
             diff_block(ba, bb)
         }
         (ExprKind::Tup(as_), ExprKind::Tup(bs)) if as_.len() == bs.len() => diff_slice(as_, bs),
@@ -153,8 +151,10 @@ fn diff_expr(a: &Expr<'_>, b: &Expr<'_>) -> Option<usize> {
 
 /// Diff a head expression followed by a zipped argument list.
 fn diff_head_and_args(
-    head_a: &Expr<'_>, head_b: &Expr<'_>,
-    args_a: &[Expr<'_>], args_b: &[Expr<'_>],
+    head_a: &Expr<'_>,
+    head_b: &Expr<'_>,
+    args_a: &[Expr<'_>],
+    args_b: &[Expr<'_>],
 ) -> Option<usize> {
     let mut total = diff_expr(head_a, head_b)?;
     for (a, b) in args_a.iter().zip(args_b.iter()) {
@@ -164,8 +164,12 @@ fn diff_head_and_args(
 }
 
 fn diff_if(
-    ca: &Expr<'_>, ta: &Expr<'_>, ea: Option<&Expr<'_>>,
-    cb: &Expr<'_>, tb: &Expr<'_>, eb: Option<&Expr<'_>>,
+    ca: &Expr<'_>,
+    ta: &Expr<'_>,
+    ea: Option<&Expr<'_>>,
+    cb: &Expr<'_>,
+    tb: &Expr<'_>,
+    eb: Option<&Expr<'_>>,
 ) -> Option<usize> {
     let mut total = diff_expr(ca, cb)? + diff_expr(ta, tb)?;
     match (ea, eb) {
@@ -177,8 +181,10 @@ fn diff_if(
 }
 
 fn diff_match(
-    sa: &Expr<'_>, sb: &Expr<'_>,
-    arms_a: &[Arm<'_>], arms_b: &[Arm<'_>],
+    sa: &Expr<'_>,
+    sb: &Expr<'_>,
+    arms_a: &[Arm<'_>],
+    arms_b: &[Arm<'_>],
 ) -> Option<usize> {
     let mut total = diff_expr(sa, sb)?;
     for (aa, ab) in arms_a.iter().zip(arms_b.iter()) {
@@ -214,24 +220,20 @@ fn diff_slice(as_: &[Expr<'_>], bs: &[Expr<'_>]) -> Option<usize> {
 fn diff_stmt(a: &rustc_hir::Stmt<'_>, b: &rustc_hir::Stmt<'_>) -> Option<usize> {
     use rustc_hir::StmtKind;
     match (&a.kind, &b.kind) {
-        (StmtKind::Let(la), StmtKind::Let(lb)) => {
-            match (la.init, lb.init) {
-                (Some(a), Some(b)) => diff_expr(a, b),
-                (None, None) => Some(0),
-                _ => None,
-            }
+        (StmtKind::Let(la), StmtKind::Let(lb)) => match (la.init, lb.init) {
+            (Some(a), Some(b)) => diff_expr(a, b),
+            (None, None) => Some(0),
+            _ => None,
+        },
+        (StmtKind::Expr(a), StmtKind::Expr(b)) | (StmtKind::Semi(a), StmtKind::Semi(b)) => {
+            diff_expr(a, b)
         }
-        (StmtKind::Expr(a), StmtKind::Expr(b))
-        | (StmtKind::Semi(a), StmtKind::Semi(b)) => diff_expr(a, b),
         _ => None,
     }
 }
 
 /// Try to derive a name for the helper from the enclosing function context.
-fn suggest_name_from_context<'tcx>(
-    cx: &LateContext<'tcx>,
-    expr: &'tcx Expr<'tcx>,
-) -> String {
+fn suggest_name_from_context<'tcx>(cx: &LateContext<'tcx>, expr: &'tcx Expr<'tcx>) -> String {
     let mut id = expr.hir_id;
     loop {
         let parent = cx.tcx.parent_hir_id(id);
@@ -240,9 +242,7 @@ fn suggest_name_from_context<'tcx>(
         }
         id = parent;
         match cx.tcx.hir_node(id) {
-            rustc_hir::Node::Item(item)
-                if matches!(item.kind, rustc_hir::ItemKind::Fn { .. }) =>
-            {
+            rustc_hir::Node::Item(item) if matches!(item.kind, rustc_hir::ItemKind::Fn { .. }) => {
                 let fn_name = cx.tcx.item_name(item.owner_id.def_id);
                 let name_str = fn_name.as_str();
                 if !name_str.is_empty() {
@@ -269,10 +269,9 @@ fn suggest_name_from_context<'tcx>(
 fn is_simple_expr(expr: &Expr<'_>) -> bool {
     match &expr.kind {
         ExprKind::Path(_) | ExprKind::Lit(_) => true,
-        ExprKind::Call(_, args) => {
-            args.iter()
-                .all(|a| matches!(a.kind, ExprKind::Path(_) | ExprKind::Lit(_)))
-        }
+        ExprKind::Call(_, args) => args
+            .iter()
+            .all(|a| matches!(a.kind, ExprKind::Path(_) | ExprKind::Lit(_))),
         ExprKind::MethodCall(_, receiver, args, _) => {
             is_simple_expr(receiver)
                 && args
@@ -331,9 +330,7 @@ fn check_exact_shape_groups<'tcx>(
 
     for group in groups.values() {
         if group.len() < MIN_SIMILAR_ARMS
-            || is_trivial_group(
-                &group.iter().map(|(_, arm)| *arm).collect::<Vec<_>>(),
-            )
+            || is_trivial_group(&group.iter().map(|(_, arm)| *arm).collect::<Vec<_>>())
         {
             continue;
         }
@@ -345,12 +342,18 @@ fn check_exact_shape_groups<'tcx>(
         let diff_count = count_differing_leaves(group[0].1.body, group[1].1.body);
 
         let advice = match diff_count {
-            Some(1) => "the arms differ in exactly 1 leaf — \
-                        pass the varying value as a parameter",
-            Some(n) if n > 1 => "the arms differ in multiple leaves — \
-                                 pass a closure for the varying behavior",
-            _ => "extract the shared pattern into a function and pass \
-                  the differing part as a parameter",
+            Some(1) => {
+                "the arms differ in exactly 1 leaf — \
+                        pass the varying value as a parameter"
+            }
+            Some(n) if n > 1 => {
+                "the arms differ in multiple leaves — \
+                                 pass a closure for the varying behavior"
+            }
+            _ => {
+                "extract the shared pattern into a function and pass \
+                  the differing part as a parameter"
+            }
         };
 
         let suggested_name = suggest_name_from_context(cx, expr);
